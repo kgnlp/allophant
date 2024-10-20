@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: If you use this software, please cite both the article from preferred-citation and the software itself.
+authors:
+  - family-names: Glocker
+    given-names: Kevin
+    orcid: "https://orcid.org/0009-0001-9364-0298"
+  - family-names: Herygers
+    given-names: Aaricia
+    orcid: "https://orcid.org/0009-0004-5830-7571"
+  - family-names: Georges
+    given-names: Munir
+    orcid: "https://orcid.org/0000-0002-5542-149X"
+title: 'Allophant: Cross-lingual Phoneme Recognition with Articulatory Attributes'
+version: 1.0.0
+date-released: '2024-10-20'
+preferred-citation:
+  authors:
+    - family-names: Glocker
+      given-names: Kevin
+    - family-names: Herygers
+      given-names: Aaricia
+    - family-names: Georges
+      given-names: Munir
+  title: 'Allophant: Cross-lingual Phoneme Recognition with Articulatory Attributes'
+  type: conference-paper
+  year: '2023'
+  collection-title: Proc. Interspeech 2023
+  conference: {}
+  publisher: {}

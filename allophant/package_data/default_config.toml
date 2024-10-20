@@ -1,0 +1,134 @@
+[data]
+languages = [ "fi", "ro", "it", "es", "mt", "pl", "ca", "sv-SE", "pt", "hu", "sw", "el", "cv", "tr", "de", "ru", "eu", "cs", "id", "lt", "ta", "ka", "nl", "sl", "et", "bn", "hi", "da", "sk", "uk", "en", "ga-IE", "fr", "ky",]
+# Maximum number of utterances per language for evaluation
+validation_limits = 1000
+# Keeps only transcriptions that consist of a single script that corresponds to the primary script of each language
+only_primary_script = true
+
+[preprocessing]
+# Sample rate of the model (16000 for XLS-R)
+resample = 16000
+feature_type = "RAW"
+
+# Options for the neural acoustic model
+[nn]
+# Random seed for reproducibility
+seed = 2
+# Mode for batching either "frames" or "utterances"
+batching_mode = "frames"
+# Batch size in number of frames or utterances per batch including padding depending on the batching_mode
+batch_size = 16000000
+# Enables batch accumulation. batch_size must be divisible by accumulation_factor
+accumulation_factor = 16
+# Enables XLS-R style language oversampling
+language_oversampling_factor = 0.5
+
+# Number of batches per step
+step_size = 5000
+# Maximum number of iterations before training is terminated
+maximum_iterations = 1000
+
+# Enables mixed precision training
+mixed_precision = true
+
+[nn.acoustic_model]
+type = "wav2vec2-pretrained"
+# Huggingface Hub ID for the base-model for pretraining
+model_id = "facebook/wav2vec2-xls-r-300m"
+
+# Freezes different layers in a Wav2Vec2 model during training
+freeze_feature_encoder = true
+freeze_encoder = false
+freeze_feature_projection = false
+
+[nn.projection]
+feature_set = "phoible"
+phoneme_layer = "allophones"
+# Dropout between the acoustic model and phoneme layers
+acoustic_model_dropout = 0.2
+# L2 regularization factor for allophone matrices
+allophone_l2_alpha = 10.0
+# Specify all classifiers for multi-task learning.
+#
+# "dependencies" can be specified for every classifier. If not provided, it
+# defaults to "OUTPUT", which stands for the output of the acoustic model. If
+# another classifier is listed as a dependency, its posterior probability
+# distribution is concatenated with other dependencies as an input to the
+# classifier.
+#
+# Cycles are detected and an optimal topological ordering is computed at
+# run-time. Hence, the order of classifiers does not matter
+classes = [
+	{dependencies = ["OUTPUT"], name = "stress"},
+	{name = "syllabic"},
+	{name = "short"},
+	{name = "long"},
+	{name = "consonantal"},
+	{name = "sonorant"},
+	{name = "continuant"},
+	{name = "delayedRelease"},
+	{name = "approximant"},
+	{name = "tap"},
+	{name = "trill"},
+	{name = "nasal"},
+	{name = "lateral"},
+	{name = "labial"},
+	{name = "round"},
+	{name = "labiodental"},
+	{name = "coronal"},
+	{name = "anterior"},
+	{name = "distributed"},
+	{name = "strident"},
+	{name = "dorsal"},
+	{name = "high"},
+	{name = "low"},
+	{name = "front"},
+	{name = "back"},
+	{name = "tense"},
+	{name = "retractedTongueRoot"},
+	{name = "advancedTongueRoot"},
+	{name = "periodicGlottalSource"},
+	{name = "epilaryngealSource"},
+	{name = "spreadGlottis"},
+	{name = "constrictedGlottis"},
+	{name = "fortis"},
+	{name = "raisedLarynxEjective"},
+	{name = "loweredLarynxImplosive"},
+	{name = "click"},
+	{dependencies = ["OUTPUT"], name = "phoneme"},
+]
+
+[nn.projection.embedding_composition]
+# Size of attribute embeddings that phoneme embeddings are composed from
+embedding_size = 640
+
+[nn.loss]
+type = "CTC"
+
+[nn.lr_schedule]
+# Warmup schedule for training
+warmup_steps = 2500
+factor = 2
+constant_steps = 10000
+type = "warmup"
+
+[nn.optimizer]
+algorithm = "adam"
+# (initial) learning rate of the optimizer
+learning_rate = 0.001
+beta_1 = 0.9
+beta_2 = 0.98
+
+# Enables CPU and/or GPU profiling
+# [profiling]
+# Number of batch training steps profiling is active for
+# active_steps = 0
+# Output flame graphs for CPU and or GPU
+# flame_graph_path_gpu = "gpu_stack_trace.txt"
+# flame_graph_path_cpu = "cpu_stack_trace.txt"
+# Profile CPU or GPU Memory
+# profile_memory = true
+# Record tensor shapes
+# record_shapes = true
+# Number of times profiling is repeated
+# repeat = 1
