@@ -188,11 +188,10 @@ def train_network(arguments: Namespace) -> None:
         features = TrainDevFeatures(training_data.features, validation_data.features)
         training_lengths = TrainDevLengths(training_data.lengths, validation_data.lengths)
 
-    use_cuda = not arguments.cpu
-
     if checkpoint is not None:
         MAIN_LOGGER.info(f"Restoring from {arguments.save_path}")
-        estimator, attribute_indexer, optimization_states = Estimator.restore(checkpoint, use_cuda=use_cuda)
+        estimator, attribute_indexer = Estimator.restore(checkpoint, "cpu" if arguments.cpu else "cuda")
+        optimization_states = checkpoint.optimization_states
         dataset_manager = DatasetManager.from_config(
             config,
             corpus,
@@ -574,7 +573,7 @@ def predict(arguments: Namespace) -> None:
     if n_candidates > arguments.ctc_beam:
         raise ValueError(f"n_best {n_candidates} larger than the beam size {arguments.ctc_beam}")
 
-    inference_estimator, attribute_indexer, _ = Estimator.restore(arguments.model_path, use_cuda=not arguments.cpu)
+    inference_estimator, attribute_indexer = Estimator.restore(arguments.model_path, "cpu" if arguments.cpu else "cuda")
     config = inference_estimator.config
     # Set Model entirely to evaluation mode for prediction
     inference_estimator.model.eval()
@@ -1032,7 +1031,7 @@ def make_parser() -> ArgumentParser:
         default=TrainingLanguageMode.INCLUDE,
         help="Whether to only evaluate on languages the model was trained on, include or exclude them from the training set",
     )
-    predict_parser.add_argument("model_path", help="Path to the model checkpoint to evaluate")
+    predict_parser.add_argument("model_path", help="Huggingface model ID or path to the model checkpoint for transcribing the data")
     predict_parser.add_argument(
         "-t",
         "--dataset-type",

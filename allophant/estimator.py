@@ -24,6 +24,7 @@ import timeit
 import contextlib
 import typing
 import gc
+import os
 
 import marshmallow_dataclass
 import torch
@@ -39,8 +40,9 @@ from marshmallow import Schema
 from marshmallow.fields import Raw
 from tqdm import tqdm
 import numpy as np
+import transformers
 
-from allophant import MAIN_LOGGER, utils
+from allophant import utils
 from allophant.attribute_graph import AttributeGraph, AttributeGraphField, AttributeNode
 from allophant.dataset_processing import BatchType, TranscribedDataset, SamplesProcessor
 from allophant.datasets.speech_corpus import AudioInfo, MultilingualCorpus, MultilingualSplits, SplitMetaData
@@ -226,16 +228,24 @@ class Checkpoint:
 
     @classmethod
     def restore(
-        cls: Type[CheckpointCls], file: PathOrFile, device: Union[torch.device, str, None] = None
+        cls: Type[CheckpointCls], file: PathOrFile, device: torch.device | str | None = None, **kwargs
     ) -> CheckpointCls:
         """
-        Restores a checkpoint from a path or file object that has previously
-        been saved using `Checkpoint.save`
+        Restores a checkpoint from a huggingface *model id*, a *path* or a
+        *file object*. Additional keyword arguments are passed to :py:func:`transformers.utils.cached_file`.
 
-        :param file: path or file object the checkpoint is read from
+        :param file: huggingface *model id*, *path* or *file object* the checkpoint is read from
+        :param device: Target device for model weights, specify "cuda" for loading weights on the GPU
 
         :return: A `Checkpoint` which was read from the `file`
         """
+        # Try loading a cached file from huggingface if a string path is given but does not exist locally
+        if isinstance(file, str) and not os.path.isfile(file):
+            resolved = transformers.utils.cached_file(file, "allophant.pt", **kwargs)
+            if resolved is None:
+                raise FileNotFoundError(f"No checkpoint found at {file!r}")
+            file = resolved
+
         return cls.Schema().load(torch.load(file, map_location=device, weights_only=True))  # type: ignore
 
 
@@ -946,7 +956,7 @@ class Estimator:
         sample_rate: int,
         attribute_graph: AttributeGraph,
         attribute_indexer: PhoneticAttributeIndexer | None = None,
-        use_cuda: bool = False,
+        device: torch.device | str = "cuda",
         load_pretrained_weights: bool = True,
     ) -> EstimatorCls:
         model = Allophant.from_config(
@@ -957,8 +967,7 @@ class Estimator:
             attribute_indexer,
             load_pretrained_weights,
         )
-        if use_cuda:
-            model = model.cuda()
+        model = model.to(device)
 
         return cls(
             config,
@@ -1075,19 +1084,27 @@ class Estimator:
 
     @classmethod
     def restore(
-        cls: Type[EstimatorCls], checkpoint: Union[Checkpoint, PathOrFile], use_cuda=False
-    ) -> Tuple[EstimatorCls, PhoneticAttributeIndexer, Optional[OptimizationStates]]:
+        cls: Type[EstimatorCls], checkpoint: Union[Checkpoint, PathOrFile], device: torch.device | str = "cuda", **kwargs
+    ) -> Tuple[EstimatorCls, PhoneticAttributeIndexer]:
         """
-        Restores an `Estimator` from a checkpoint previously saved using `Estimator.save`
+        Restores an `Estimator` from a checkpoint previously saved using
+        `Estimator.save`. Additional keyword arguments are passed to
+        :py:func:`transformers.utils.cached_file`.
 
-        :param checkpoint_or_file: A `Checkpoint` which was previously saved using `Estimator.save` from which
-            the model state and config are restored - either in the form of a `Checkpoint` object or the path or file to one
+        :param checkpoint_or_file: A `Checkpoint` which was previously saved
+            using `Estimator.save` from which the model state and config are
+            restored. It can either be:
+            - a `Checkpoint` instance
+            - a huggingface *model id*
+            - a local *path* or *file object*
+        :param device: Target device for model weights, specify "cuda" for
+            loading weights on the GPU
 
-        :return: An `Estimator` restored from the given `Checkpoint`
+        :return: A tuple of the `Estimator` restored from the given checkpoint and the phonetic attributes used by the model
         """
         # Restore parameters
         if not isinstance(checkpoint, Checkpoint):
-            checkpoint = Checkpoint.restore(checkpoint, device="cuda" if use_cuda else "cpu")
+            checkpoint = Checkpoint.restore(checkpoint, device=device, **kwargs)
 
         phoneme_indexer = PhoneticAttributeIndexer.from_config(
             checkpoint.config, state_dict=checkpoint.phonetic_indexer_state
@@ -1099,11 +1116,11 @@ class Estimator:
             checkpoint.sample_rate,
             checkpoint.attribute_graph,
             phoneme_indexer,
-            use_cuda,
+            device,
             load_pretrained_weights=False,
         )
         estimator.model.load_state_dict(checkpoint.model_state)
         estimator.epoch = checkpoint.epoch
         estimator.history = checkpoint.history
 
-        return (estimator, phoneme_indexer, checkpoint.optimization_states)
+        return estimator, phoneme_indexer

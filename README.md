@@ -78,7 +78,7 @@ allophant generate-config [path/to/config]
 The `allophant-data` command contains all functionality for corpus processing and management available in `allophant`.
 For training, corpora without phoneme-level transcriptions have to be transcribed beforehand with a grapheme-to-phoneme model.
 
-#### Inference
+#### Transcription
 
 Phoneme transcriptions for a supported corpus format can be generated with `transcribe`.
 For instance, for transcribing the German and English subsets of a corpus with eSpeak NG and [PHOIBLE features](https://github.com/phoible/dev/tree/master/raw-data/FEATURES) from [Allophoible](https://github.com/Aariciah/allophoible) using a batch size of 512 and at most 15,000 utterances per language:
@@ -111,14 +111,14 @@ Note that at least the `--lengths/-l` flag with a path to previously computed ut
 
 ### Evaluation
 
-#### Transcription
+#### Test Data Inference
 
 For evaluation, test data can be transcribed with the `predict` sub-command. The resulting file contains metadata, transcriptions for phonemes and features, and gold standard labels from the test data.
 
 ```bash
 allophant predict [--cpu] [-w number] [-t {ucla-phonetic,common-voice}] [-f phonemes,feature1,feature2]
   [--fix-unicode] [--training-languages {include,exclude,only}] [-m {frames,utterances}] [-s number]
-  [--language-phonemes] [--no-progress] [-c] [-o /path/to/prediction_file.jsonl] /path/to/dataset /path/to/checkpoint
+  [--language-phonemes] [--no-progress] [-c] [-o /path/to/prediction_file.jsonl] /path/to/dataset huggingface/model_id or /path/to/checkpoint
 ```
 
 Use `--dataset-type/-t` to select the data set type. Note that only Common Voice and the UCLA Phonetic Corpus are currently supported. Predictions will either be printed to stdout or saved to a file given by `--output/-o`. Gzip compression is either inferred from a ".jsonl.gz" extension or can be forced with the `--compress/-c` flag. The `--training-languages` argument allows filtering utterances based on the languages that also occur in the training data, and should be set to "exclude" for zero-shot evaluation.

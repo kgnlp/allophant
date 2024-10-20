@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: If you use this software, please cite both the article from preferred-citation and the software itself.
+message: If you use this software, please cite the article from preferred-citation.
 authors:
   - family-names: Glocker
     given-names: Kevin
