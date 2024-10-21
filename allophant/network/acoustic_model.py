@@ -423,12 +423,9 @@ class HierarchicalProjection(nn.Module):
 
                 if not self._uses_allophone_mapping:
                     # Use the phoneme subset from the attribute indexer with all features for constructing the embeddings
-                    feature_types = attribute_indexer.varying_feature_categories.copy()
-                    # Remove "phoneme" column to keep only features
-                    feature_types.remove(ProjectionEntryConfig.PHONEME_LAYER)
                     training_attributes = attribute_indexer.full_attributes.subset(
                         attribute_indexer.phonemes.tolist(),
-                        feature_types,
+                        attribute_indexer.composition_features.copy(),
                     )
                 else:
                     if attribute_indexer.allophone_data is None:

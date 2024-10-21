@@ -681,8 +681,7 @@ def predict(arguments: Namespace) -> None:
     if not is_composition_model:
         per_language_decoders = None
     else:
-        attributes = attribute_indexer.varying_feature_categories
-        attributes.remove(ProjectionEntryConfig.PHONEME_LAYER)
+        attributes = attribute_indexer.composition_features
         # Merge training and test inventories for fairness when using common voice
         if arguments.dataset_type == "common-voice":
             training_inventories = test_data.load_inventories_for("train")

@@ -22,7 +22,7 @@ from allophant import phonemes
 from allophant.phonemes import Action
 from allophant import utils
 from allophant.config import FeatureSet
-from allophant.phonetic_features import ArticulatoryAttributes, PhoneticAttributeIndexer, PhoneticIndexerState
+from allophant.phonetic_features import ArticulatoryAttributes, PhonemeIndexer, PhoneticIndexerState
 from allophant.utils import MarshmallowDataclassLoadMixin, PathOrFile, PathOrFileBinary
 
 
@@ -243,7 +243,7 @@ class FeatureDecoder:
 
 
 def feature_decoders(
-    indexer: PhoneticAttributeIndexer,
+    indexer: PhonemeIndexer,
     beam_width: int = 1,
     feature_names: Iterable[str] | None = None,
     n_best: int = 1,

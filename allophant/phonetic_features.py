@@ -1,5 +1,5 @@
 from abc import ABCMeta
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from io import StringIO
 import itertools
 import json
@@ -608,16 +608,15 @@ class PhoneticAttributeIndexer(PhonemeIndexer):
         language_inventories: LanguageInventoryTypes = None,
         allophones_from_allophoible: bool = False,
     ):
-        allophone_data = None
+        self._allophone_data = None
 
         if feature_set == FeatureSet.PHOIBLE:
             original_feature_table: DataFrame = read_allophoible(attribute_table_file, index_column="Phoneme")
-            if allophones_from_allophoible:
-                allophone_data, phoneme_subset = generate_allophone_data(
-                    language_inventories,
-                    original_feature_table,
-                    phoneme_subset=phoneme_subset,
-                )
+            self._allophone_data, phoneme_subset = generate_allophone_data(
+                language_inventories,
+                original_feature_table,
+                phoneme_subset=phoneme_subset,
+            )
 
             feature_table = original_feature_table.copy(deep=True)
             feature_table.index.rename("phoneme", inplace=True)
@@ -689,17 +688,20 @@ class PhoneticAttributeIndexer(PhonemeIndexer):
         varying_feature_categories = self._full_attributes._feature_categories.copy()
         if feature_set == FeatureSet.PHOIBLE:
             del varying_feature_categories[start_column]
-        self._varying_feature_categories = list(varying_feature_categories)
 
-        if allophone_data is None:
-            self._allophone_data = None
-        else:
-            _binarize_contours(allophone_data, feature_start_column, attribute_vocabularies)
+        # Keep track of all phonetic features required for embedding
+        # composition by removing the "phoneme" column
+        features_only = varying_feature_categories.copy()
+        features_only.pop("phoneme", None)
+        self._composition_features = list(features_only)
+
+        if self._allophone_data is not None:
+            _binarize_contours(self._allophone_data, feature_start_column, attribute_vocabularies)
 
             self._allophone_data = AllophoneData(
-                allophone_data,
+                self._allophone_data,
                 ArticulatoryAttributes(
-                    allophone_data.loc[~allophone_data.index.duplicated(keep="first"), feature_start_column:],
+                    self._allophone_data.loc[~self._allophone_data.index.duplicated(keep="first"), feature_start_column:],
                     varying_feature_categories,
                 ),
             )
@@ -709,13 +711,13 @@ class PhoneticAttributeIndexer(PhonemeIndexer):
             case LanguageAllophoneMappings():
                 self._language_allophones = language_inventories
             case LanguageInventories():
-                if self._allophone_data is None:
-                    self._language_allophones = language_inventories.map_allophones(self)
-                else:
+                if allophones_from_allophoible:
                     self._language_allophones = LanguageAllophoneMappings.from_allophone_data(
                         self,
                         language_inventories.languages,
                     )
+                else:
+                    self._language_allophones = language_inventories.map_allophones(self)
             case _:
                 self._language_allophones = None
 
@@ -784,8 +786,8 @@ class PhoneticAttributeIndexer(PhonemeIndexer):
         )
 
     @property
-    def varying_feature_categories(self) -> List[str]:
-        return self._varying_feature_categories
+    def composition_features(self) -> List[str]:
+        return self._composition_features
 
     @property
     def language_allophones(self) -> LanguageAllophoneMappings | None:
@@ -803,15 +805,54 @@ class PhoneticAttributeIndexer(PhonemeIndexer):
     def full_subset_attributes(self) -> ArticulatoryAttributes:
         return self._full_phoneme_subset_attributes
 
+    def composition_feature_matrix(self, inventory: list[str]) -> Tensor:
+        """
+        Constructs the feature matrix used by the :py:class:`allophant.network.acoustic_model.EmbeddingCompositionLayer`
+        for recognizing phones from a given inventory
+
+        :param inventory: An inventory of phones supported by the Allophoible database
+
+        :return: A matrix of feature vectors for each phone in the inventory.
+            In the case of contour features, the first feature value in the contour is used
+        """
+        return self._full_attributes.subset(inventory, self._composition_features).dense_feature_table.long()
+
     def allophone_inventory(self, language_code: str) -> DataFrame:
         if self._allophone_data is None:
             raise ValueError(
-                'Allophone inventories can only be accessed if "allophones_from_allophoible" was set to True'
+                'Allophone inventories can only be accessed if features were extracted from Allophoible'
             )
 
         return self._allophone_data.inventories[
             self._allophone_data.inventories.ISO6393 == language_codes.standardize_to_iso6393(language_code)
         ]
+
+    def phoneme_inventory(self, languages: Sequence[str] | str) -> list[str]:
+        """
+        Constructs a (shared) phoneme inventory for the given language or
+        multiple languages. If a sequence of language codes is given, the union
+        of phoneme inventories is returned.
+
+        :param languages: Either a single language code or a sequence of
+            language codes.
+
+        :return: A list of phonemes from the given language or languages. If a
+            sequence of language codes is given, the list contains the union of
+            phoneme inventories.
+        """
+        if self._allophone_data is None:
+            raise ValueError(
+                'Allophone inventories can only be accessed if features were extracted from Allophoible'
+            )
+
+        if isinstance(languages, str):
+            selection = self._allophone_data.inventories.ISO6393 == language_codes.standardize_to_iso6393(languages)
+        else:
+            selection = self._allophone_data.inventories.ISO6393.isin(
+                {language_codes.standardize_to_iso6393(language_code) for language_code in languages}
+            )
+
+        return self._allophone_data.inventories[selection].index.unique().to_list()
 
     @overload
     def map_language_inventory(
