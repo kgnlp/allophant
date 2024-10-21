@@ -27,14 +27,14 @@ JSON files containing detailed error rates and statistics for all languages can 
 ### System Dependencies
 
 A Rust compiler is required for building the native `pyo3` extension. For managing Rust installations, [rustup](https://rustup.rs/) is recommended.
-Torchaudio mp3 support additionally requires ffmpeg to be installed on the system. E.g. for Debian-based Linux distributions:
+
+#### Optional
+
+Torchaudio mp3 support requires ffmpeg to be installed on the system. E.g. for Debian-based Linux distributions:
 
 ```bash
 sudo apt update && sudo apt install ffmpeg
 ```
-
-#### Optional
-
 For transcribing training and evaluation data with eSpeak NG G2P, The [espeak-ng](https://github.com/espeak-ng/espeak-ng) package is required:
 
 ```bash
@@ -45,7 +45,7 @@ We transcribed Common Voice using version 1.51 for our paper.
 
 ### Allophant Package
 
-The package can be built via pip from the repository. Note that it currently requires Python 3.10 and was also tested on 3.12.
+The package can be built via pip from the repository. Note that it currently requires Python >= 3.10 and was tested on 3.12.
 
 ```bash
 pip install "git+https://github.com/kgnlp/allophant"
@@ -62,6 +62,69 @@ pip install -e allophant
 ```
 
 ## Usage
+
+### Inference With Pre-trained Models
+
+A pre-trained model can be loaded with the `allophant` package from a huggingface checkpoint or local file:
+
+```python
+from allophant.estimator import Estimator
+
+device = "cpu"
+model, attribute_indexer = Estimator.restore("kgnlp/allophant", device=device)
+supported_features = attribute_indexer.feature_names
+# The phonetic feature categories supported by the model, including "phonemes"
+print(supported_features)
+```
+Allophant supports decoding custom phoneme inventories, which can be constructed in multiple ways:
+
+```python
+# 1. For a single language:
+inventory = attribute_indexer.phoneme_inventory("es")
+# 2. For multiple languages, e.g. in code-switching scenarios
+inventory = attribute_indexer.phoneme_inventory(["es", "it"])
+# 3. Any custom selection of phones for which features are available in the Allophoible database
+inventory = ['a', 'ai̯', 'au̯', 'b', 'e', 'eu̯', 'f', 'ɡ', 'l', 'ʎ', 'm', 'ɲ', 'o', 'p', 'ɾ', 's', 't̠ʃ']
+````
+
+Audio files can then be loaded, resampled and transcribed using the given
+inventory by first computing the log probabilities for each classifier:
+
+```python
+import torch
+import torchaudio
+from allophant.dataset_processing import Batch
+
+# Load an audio file and resample the first channel to the sample rate used by the model
+audio, sample_rate = torchaudio.load("utterance.wav")
+audio = torchaudio.functional.resample(audio[:1], sample_rate, model.sample_rate)
+
+# Construct a batch of 0-padded single channel audio, lengths and language IDs
+# Language ID can be 0 for inference
+batch = Batch(audio, torch.tensor([audio.shape[1]]), torch.zeros(1))
+model_outputs = model.predict(
+  batch.to(device),
+  attribute_indexer.composition_feature_matrix(inventory).to(device)
+)
+```
+
+Finally, the log probabilities can be decoded into the recognized phonemes or phonetic features:
+
+```python
+from allophant import predictions
+
+# Create a feature mapping for your inventory and CTC decoders for the desired feature set
+inventory_indexer = attribute_indexer.attributes.subset(inventory)
+ctc_decoders = predictions.feature_decoders(inventory_indexer, feature_names=supported_features)
+
+for feature_name, decoder in ctc_decoders.items():
+    decoded = decoder(model_outputs.outputs[feature_name].transpose(1, 0), model_outputs.lengths)
+    # Print the feature name and values for each utterance in the batch
+    for [hypothesis] in decoded:
+        # NOTE: token indices are offset by one due to the <BLANK> token used during decoding
+        recognized = inventory_indexer.feature_values(feature_name, hypothesis.tokens - 1)
+        print(feature_name, recognized)
+```
 
 ### Configuration
 
