@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "allophant"
-description = "An implementation of joint phoneme and articulatory attribute modeling for cross-lingual phoneme recognition"
+description = "A multilingual phoneme recognizer capable of generalizing zero-shot to unseen phoneme inventories."
 authors = [
   { name = "Kevin Glocker", email = "kevin.glocker@liu.se" },
   { name = "Aaricia Herygers", email = "aariciaherygers@gmail.com" },
@@ -40,14 +40,18 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
-    "Topic :: Text Processing :: Linguistic",
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Environment :: GPU :: NVIDIA CUDA",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Rust",
-    "Operating System :: POSIX",
+    "Operating System :: OS Independent",
 ]
+
+[project.urls]
+source = "https://github.com/kgnlp/allophant"
 
 [project.scripts]
 allophant = "allophant.run:main"
@@ -59,6 +63,7 @@ allophant-error-rates = "allophant.get_attribute_error_rates:main"
 module-name = "allophant.phonemes"
 bindings = "pyo3"
 debug = false
+exclude = ["/interspeech_results/*", "/.gitignore"]
 
 [tool.black]
 line-length = 120

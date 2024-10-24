@@ -26,7 +26,7 @@ JSON files containing detailed error rates and statistics for all languages can 
 
 ### System Dependencies
 
-A Rust compiler is required for building the native `pyo3` extension. For managing Rust installations, [rustup](https://rustup.rs/) is recommended.
+For most Linux and macOS systems, pre-built binaries are available via pip. For installation on other platforms or when building from source, a Rust compiler is required for building the native `pyo3` extension. [Rustup](https://rustup.rs/) is recommended for managing Rust installations.
 
 #### Optional
 
@@ -45,13 +45,13 @@ We transcribed Common Voice using version 1.51 for our paper.
 
 ### Allophant Package
 
-The package can be built via pip from the repository. Note that it currently requires Python >= 3.10 and was tested on 3.12.
+Allophant can be installed via pip:
 
 ```bash
-pip install "git+https://github.com/kgnlp/allophant"
+pip install allophant
 ```
 
-For use on GPU, torch and torchaudio may need to be manually installed for your required CUDA or ROCm version. ([PyTorch installation](https://pytorch.org/get-started/locally/))
+Note that the package currently requires Python >= 3.10 and was tested on 3.12. For use on GPU, torch and torchaudio may need to be manually installed for your required CUDA or ROCm version. ([PyTorch installation](https://pytorch.org/get-started/locally/))
 
 For development, an editable package can be installed as follows:
 

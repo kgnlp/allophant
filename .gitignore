@@ -24,6 +24,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.intentionally-empty-file.o
 
 # pyenv
 .python-version
