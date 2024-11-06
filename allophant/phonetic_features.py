@@ -16,14 +16,14 @@ import unicodedata
 import panphon
 import pandas as pd
 from pandas import CategoricalDtype, DataFrame, Index, Series
-from pandas.io.parsers.readers import ReadCsvBuffer
+from pandas._typing import ReadCsvBuffer
 from torch import LongTensor, Tensor
 import torch
 import numpy as np
 
 from allophant.config import Config, PhonemeLayerType, ProjectionEntryConfig
 from allophant.package_data import ALLOPHOIBLE_PATH, DEFAULT_DIALECTS_PATH
-from allophant.phonemes import MissingSegmentError, IpaSegmenter
+#from allophant.phonemes import MissingSegmentError, IpaSegmenter
 from allophant.language_codes import LanguageCode
 from allophant.config import ProjectionEntryConfig, FeatureSet
 from allophant import utils
@@ -513,7 +513,7 @@ class ArticulatoryAttributes(PhonemeIndexer):
                 # sub-segments are in the segmenter's phoneme inventory
                 try:
                     mapping[phoneme] = segmenter.segment_checked(phoneme)[0]
-                except MissingSegmentError as error:
+                except: 
                     # When no mapping with the other rules is possible
                     raise ValueError(f"No suitable mapping found for segment {phoneme!r}") from error
 
@@ -916,9 +916,9 @@ class PhoneticAttributeIndexer(PhonemeIndexer):
             for phoneme in inventory
         }
 
-    def _phoneme_fallback(self, segmenter: IpaSegmenter, phoneme: str) -> str:
-        if phoneme in self.phonemes:
-            return phoneme
+#    def _phoneme_fallback(self, segmenter: IpaSegmenter, phoneme: str) -> str:
+#        if phoneme in self.phonemes:
+#            return phoneme
 
         return segmenter.segment_checked(phoneme)[0]
 

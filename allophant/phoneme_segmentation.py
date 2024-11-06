@@ -8,7 +8,7 @@ import re
 
 from regex import regex
 
-from allophant.phonemes import IpaSegmenter
+#from allophant.phonemes import IpaSegmenter
 from allophant.utils import AnyPath
 
 
@@ -155,35 +155,36 @@ class SegmentationProcessor:
 
 
 class IpaSentenceSegmenter:
-    def __init__(self, dictionary: List[str], processor: SegmentationProcessor | None = None) -> None:
-        self._segmenter = IpaSegmenter(dictionary)
-        self._processor = SegmentationProcessor() if processor is None else processor
-
-    @property
-    def word_segmenter(self) -> IpaSegmenter:
-        return self._segmenter
-
-    def __call__(self, phonetic_sentences: Iterable[List[str]]) -> Iterator[List[str]]:
-        return (self._segmenter.segment_words_checked(sentence) for sentence in phonetic_sentences)
-
-    def lossy_segment(self, phonetic_sentences: Iterable[List[str]]) -> Iterator[List[str]]:
-        for sentence in phonetic_sentences:
-            sentence_phonemes = []
-            phoneme_iterator = iter(sentence)
-            for phoneme in phoneme_iterator:
-                pre_processed = self._processor.pre_process(phoneme, phoneme_iterator)
-                sub_segments = self._processor.post_process(
-                    self._segmenter.segment(pre_processed),
-                    phoneme_iterator,
-                )
-                sentence_phonemes.extend(sub_segments)
-                if len(sub_segments) != 1:
-                    if "".join(sub_segments) != pre_processed:
-                        SEGMENTATION_LOGGER.log.warning(pre_processed + " (Missing sub-segment when split)")
-                    else:
-                        SEGMENTATION_LOGGER.log.warning(pre_processed)
-
-            yield sentence_phonemes
+    pass
+#    def __init__(self, dictionary: List[str], processor: SegmentationProcessor | None = None) -> None:
+#        self._segmenter = IpaSegmenter(dictionary)
+#        self._processor = SegmentationProcessor() if processor is None else processor
+#
+#    @property
+#    def word_segmenter(self) -> IpaSegmenter:
+#        return self._segmenter
+#
+#    def __call__(self, phonetic_sentences: Iterable[List[str]]) -> Iterator[List[str]]:
+#        return (self._segmenter.segment_words_checked(sentence) for sentence in phonetic_sentences)
+#
+#    def lossy_segment(self, phonetic_sentences: Iterable[List[str]]) -> Iterator[List[str]]:
+#        for sentence in phonetic_sentences:
+#            sentence_phonemes = []
+#            phoneme_iterator = iter(sentence)
+#            for phoneme in phoneme_iterator:
+#                pre_processed = self._processor.pre_process(phoneme, phoneme_iterator)
+#                sub_segments = self._processor.post_process(
+#                    self._segmenter.segment(pre_processed),
+#                    phoneme_iterator,
+#                )
+#                sentence_phonemes.extend(sub_segments)
+#                if len(sub_segments) != 1:
+#                    if "".join(sub_segments) != pre_processed:
+#                        SEGMENTATION_LOGGER.log.warning(pre_processed + " (Missing sub-segment when split)")
+#                    else:
+#                        SEGMENTATION_LOGGER.log.warning(pre_processed)
+#
+#            yield sentence_phonemes
 
 
 def _is_mark(character: str) -> bool:

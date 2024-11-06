@@ -44,7 +44,7 @@ import transformers
 
 from allophant import utils
 from allophant.attribute_graph import AttributeGraph, AttributeGraphField, AttributeNode
-from allophant.dataset_processing import BatchType, TranscribedDataset, SamplesProcessor
+#from allophant.dataset_processing import BatchType, TranscribedDataset, SamplesProcessor
 from allophant.datasets.speech_corpus import AudioInfo, MultilingualCorpus, MultilingualSplits, SplitMetaData
 from allophant.phonetic_features import PhoneticAttributeIndexer, PhoneticIndexerState
 from allophant.utils import OnlineMean, PathOrFile, PathOrFileBinary
@@ -285,121 +285,122 @@ DatasetManagerCls = TypeVar("DatasetManagerCls", bound="DatasetManager")
 
 
 class DatasetManager:
-    def __init__(
-        self,
-        config: Config,
-        data_splits: MultilingualSplits[MultilingualCorpus],
-        samples_processor: SamplesProcessor,
-        data_lengths: TrainDevLengths | None = None,
-        data_features: TrainDevFeatures | None = None,
-        data_workers: int | None = 0,
-        perform_validation: bool = True,
-    ):
-        nn_config = config.nn
-        self._index_start_offset = nn_config.loss.BLANK_OFFSET
-        batch_size = split_batch_size(nn_config.batch_size, nn_config.accumulation_factor)
-        # Only the custom Transformer Acoustic Model requires packed batches while Wav2Vec2 uses custom processing
-        self.training_batcher = Batcher(
-            batch_size, nn_config.batching_mode, nn_config.language_oversampling_factor, data_workers
-        )
-        self.validation_batcher = Batcher(batch_size, nn_config.batching_mode, data_workers=data_workers)
-        # Reuse the global seed specifically for the batcher to ensure consistent data sampling for model comparisons
-        self._batching_seed = config.nn.seed
-
-        self._data_splits = data_splits
-        self._data_workers = data_workers
-        self._perform_validation = perform_validation
-        self._sample_processor = samples_processor
-        if data_lengths is None:
-            self._training_lengths = self._development_lengths = None
-        else:
-            self._training_lengths = data_lengths.train
-            self._development_lengths = data_lengths.development
-
-        self._training_data = self._process_dataset(
-            data_splits.train, None if data_features is None else data_features.train
-        )
-        self._validation_data = self._process_dataset(
-            data_splits.dev,
-            None if data_features is None else data_features.dev,
-            # Map phonemes that might not appear in the training data
-            {
-                language_id: set(inventory)
-                for language_id, inventory in data_splits.train.language_id_inventories().inventories.items()
-            },
-        )
-
-        self._resampled = config.preprocessing.resample
-        self._training_set_size = len(self._data_splits.train)
-        self._validation_set_size = len(self._data_splits.dev)
-        self._audio_info = self._data_splits.audio_info()
-        self._sample_rate = self._audio_info.sample_rate
-
-    def _process_dataset(
-        self,
-        data_split: MultilingualCorpus,
-        features: List[np.ndarray] | None = None,
-        phoneme_mapper: Dict[int, Set[str]] | None = None,
-    ) -> TranscribedDataset:
-        return TranscribedDataset(
-            BatchType.INDEXED, data_split, self._sample_processor, self._index_start_offset, features, phoneme_mapper
-        )
-
-    def training_batches(self, shuffle: bool = True) -> Iterator[LabeledBatch]:
-        return self.training_batcher.batches(self._training_data, self._training_lengths, shuffle, self._batching_seed)
-
-    def development_batches(self, shuffle: bool = False) -> Iterator[LabeledBatch]:
-        return self.validation_batcher.batches(
-            self._validation_data, self._development_lengths, shuffle, self._batching_seed
-        )
-
-    @property
-    def splits(self) -> MultilingualSplits:
-        return self._data_splits
-
-    @property
-    def training_set_size(self) -> int:
-        return self._training_set_size
-
-    @property
-    def validation_set_size(self) -> int:
-        return self._validation_set_size
-
-    @property
-    def feature_size(self) -> int:
-        return self._sample_processor.feature_size
-
-    @property
-    def sample_rate(self) -> int:
-        return self._sample_rate
-
-    @property
-    def audio_info(self) -> AudioInfo:
-        return self._audio_info
-
-    def indexer_state(self) -> PhoneticIndexerState:
-        return self._sample_processor.indexer_state()
-
-    def attribute_graph(self, config: Config) -> AttributeGraph:
-        return AttributeGraph(_generate_attribute_graph_data(self._sample_processor.attribute_indexer, config))
-
-    @classmethod
-    def from_config(
-        cls: Type[DatasetManagerCls],
-        config: Config,
-        data_splits: MultilingualSplits,
-        attribute_indexer: PhoneticAttributeIndexer,
-        data_lengths: Optional[TrainDevLengths] = None,
-        data_features: Optional[TrainDevFeatures] = None,
-        data_workers: Optional[int] = 0,
-        perform_validation: bool = True,
-    ) -> DatasetManagerCls:
-        sample_processor = SamplesProcessor.from_config(
-            config,
-            data_splits.audio_info().sample_rate,
-            attribute_indexer,
-        )
-        return cls(config, data_splits, sample_processor, data_lengths, data_features, data_workers, perform_validation)
+    pass
+#    def __init__(
+#        self,
+#        config: Config,
+#        data_splits: MultilingualSplits[MultilingualCorpus],
+#        samples_processor: SamplesProcessor,
+#        data_lengths: TrainDevLengths | None = None,
+#        data_features: TrainDevFeatures | None = None,
+#        data_workers: int | None = 0,
+#        perform_validation: bool = True,
+#    ):
+#        nn_config = config.nn
+#        self._index_start_offset = nn_config.loss.BLANK_OFFSET
+#        batch_size = split_batch_size(nn_config.batch_size, nn_config.accumulation_factor)
+#        # Only the custom Transformer Acoustic Model requires packed batches while Wav2Vec2 uses custom processing
+#        self.training_batcher = Batcher(
+#            batch_size, nn_config.batching_mode, nn_config.language_oversampling_factor, data_workers
+#        )
+#        self.validation_batcher = Batcher(batch_size, nn_config.batching_mode, data_workers=data_workers)
+#        # Reuse the global seed specifically for the batcher to ensure consistent data sampling for model comparisons
+#        self._batching_seed = config.nn.seed
+#
+#        self._data_splits = data_splits
+#        self._data_workers = data_workers
+#        self._perform_validation = perform_validation
+#        self._sample_processor = samples_processor
+#        if data_lengths is None:
+#            self._training_lengths = self._development_lengths = None
+#        else:
+#            self._training_lengths = data_lengths.train
+#            self._development_lengths = data_lengths.development
+#
+#        self._training_data = self._process_dataset(
+#            data_splits.train, None if data_features is None else data_features.train
+#        )
+#        self._validation_data = self._process_dataset(
+#            data_splits.dev,
+#            None if data_features is None else data_features.dev,
+#            # Map phonemes that might not appear in the training data
+#            {
+#                language_id: set(inventory)
+#                for language_id, inventory in data_splits.train.language_id_inventories().inventories.items()
+#            },
+#        )
+#
+#        self._resampled = config.preprocessing.resample
+#        self._training_set_size = len(self._data_splits.train)
+#        self._validation_set_size = len(self._data_splits.dev)
+#        self._audio_info = self._data_splits.audio_info()
+#        self._sample_rate = self._audio_info.sample_rate
+#
+#    def _process_dataset(
+#        self,
+#        data_split: MultilingualCorpus,
+#        features: List[np.ndarray] | None = None,
+#        phoneme_mapper: Dict[int, Set[str]] | None = None,
+#    ) -> TranscribedDataset:
+#        return TranscribedDataset(
+#            BatchType.INDEXED, data_split, self._sample_processor, self._index_start_offset, features, phoneme_mapper
+#        )
+#
+#    def training_batches(self, shuffle: bool = True) -> Iterator[LabeledBatch]:
+#        return self.training_batcher.batches(self._training_data, self._training_lengths, shuffle, self._batching_seed)
+#
+#    def development_batches(self, shuffle: bool = False) -> Iterator[LabeledBatch]:
+#        return self.validation_batcher.batches(
+#            self._validation_data, self._development_lengths, shuffle, self._batching_seed
+#        )
+#
+#    @property
+#    def splits(self) -> MultilingualSplits:
+#        return self._data_splits
+#
+#    @property
+#    def training_set_size(self) -> int:
+#        return self._training_set_size
+#
+#    @property
+#    def validation_set_size(self) -> int:
+#        return self._validation_set_size
+#
+#    @property
+#    def feature_size(self) -> int:
+#        return self._sample_processor.feature_size
+#
+#    @property
+#    def sample_rate(self) -> int:
+#        return self._sample_rate
+#
+#    @property
+#    def audio_info(self) -> AudioInfo:
+#        return self._audio_info
+#
+#    def indexer_state(self) -> PhoneticIndexerState:
+#        return self._sample_processor.indexer_state()
+#
+#    def attribute_graph(self, config: Config) -> AttributeGraph:
+#        return AttributeGraph(_generate_attribute_graph_data(self._sample_processor.attribute_indexer, config))
+#
+#    @classmethod
+#    def from_config(
+#        cls: Type[DatasetManagerCls],
+#        config: Config,
+#        data_splits: MultilingualSplits,
+#        attribute_indexer: PhoneticAttributeIndexer,
+#        data_lengths: Optional[TrainDevLengths] = None,
+#        data_features: Optional[TrainDevFeatures] = None,
+#        data_workers: Optional[int] = 0,
+#        perform_validation: bool = True,
+#    ) -> DatasetManagerCls:
+#        sample_processor = SamplesProcessor.from_config(
+#            config,
+#            data_splits.audio_info().sample_rate,
+#            attribute_indexer,
+#        )
+#        return cls(config, data_splits, sample_processor, data_lengths, data_features, data_workers, perform_validation)
 
 
 def profiler_trace_handler(profiling_config: ProfilingConfig) -> Callable[[Any], None]:
